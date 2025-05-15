@@ -14,9 +14,10 @@ provider "aws" {
 }
 
 module "sns" {
-  source = "./modules/sns"
+  source              = "./modules/sns"
+  topic_name          = "welcome-email-topic"
+  lambda_function_arn = module.lambda.lambda_function_arn
 }
-
 module "lambda" {
   source        = "./modules/lambda"
   sns_topic_arn = module.sns.topic_arn
