@@ -1,0 +1,103 @@
+name: terraform deployment workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::116981791124:role/idp-role
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.11.0
+
+      - name: Terraform Init
+        run: terraform init -reconfigure
+
+      - name: Validate Terraform
+        run: terraform validate
+
+      - name: Format Terraform
+        run: terraform fmt -recursive
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Lint Terraform Code
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --init
+          tflint --config .tflint.hcl
+
+      - name: Terraform test
+        run: |
+          terraform test
+        continue-on-error: true
+          
+      - name: Install Checkov
+        run: pip install checkov
+
+      - name: Run Checkov with soft fail
+        run: |
+          checkov --directory . --soft-fail
+
+      - name: Generate Markdown with Terraform Docs
+        if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+        uses: terraform-docs/gh-actions@v1.3.0
+        with:
+          output-file: README.md
+          output-method: inject
+          git-push: true
+          config-file: .terraform-docs.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Posting README.md as PR Comment
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: marocchino/sticky-pull-request-comment@v2.9.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          header: "Terraform Documentation"
+          path: "README.md"
+
+      - name: Applying Terraform after PR Merge
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          terraform init
+          terraform apply -auto-approve
