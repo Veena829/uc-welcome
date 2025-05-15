@@ -22,7 +22,7 @@ resource "aws_iam_policy" "lambda_policy" {
       {
         Effect   = "Allow",
         Action   = "sns:Publish",
-        Resource = var.sns_topic_arn
+        Resource = "arn:aws:sns:us-east-1:116981791124:welcome-email-topic"
       },
       {
         Effect = "Allow",
