@@ -45,7 +45,7 @@ resource "aws_iam_role_policy_attachment" "attach_policy" {
 resource "aws_lambda_function" "lambda" {
   function_name = "welcome_email_lambda"
   handler       = "index.handler"
-  runtime       = "nodejs20.x"  # ✅ Updated to supported runtime
+  runtime       = "nodejs20.x" # ✅ Updated to supported runtime
   role          = aws_iam_role.lambda_role.arn
 
   filename         = "${path.module}/lambda.zip"
