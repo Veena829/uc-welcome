@@ -1,3 +1,14 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0" # Or whatever latest version you want to use
+    }
+  }
+
+  required_version = ">= 1.0.0" # Optional, depending on your Terraform CLI version
+}
+
 provider "aws" {
   region = "us-east-1"
 }
