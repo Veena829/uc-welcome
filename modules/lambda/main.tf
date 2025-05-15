@@ -25,8 +25,8 @@ resource "aws_iam_policy" "lambda_policy" {
         Resource = var.sns_topic_arn
       },
       {
-        Effect   = "Allow",
-        Action   = [
+        Effect = "Allow",
+        Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents"
